@@ -2,7 +2,28 @@ import drivewayImg from '../assets/images/station_home_driveway_1794550151612.jp
 import solarHubImg from '../assets/images/station_solar_hub_1794550151691.jpg';
 import apartmentBayImg from '../assets/images/station_apartment_bay_1794550151744.jpg';
 import hostPortraitImg from '../assets/images/host_portrait_community_1794550151803.jpg';
-import { Booking, ChargerStation, CityId, CityMapMeta, Receipt } from '../types/marketplace';
+import {
+  Booking,
+  ChargerStation,
+  CityId,
+  CityMapMeta,
+  Receipt,
+  VehicleCategoryFilter,
+} from '../types/marketplace';
+
+export function matchesVehicleCategory(
+  station: ChargerStation,
+  category: VehicleCategoryFilter,
+): boolean {
+  if (category === 'all') return true;
+  if (category === '2w') {
+    return (
+      station.connectorType === '15A Socket' ||
+      station.amenities.some((a) => /two[- ]?wheeler|2w|scooter/i.test(a))
+    );
+  }
+  return station.connectorType === 'CCS2' || station.connectorType === 'Type 2';
+}
 
 export const STATION_IMAGES = {
   driveway: drivewayImg,
@@ -230,6 +251,30 @@ export const INITIAL_CHARGERS: ChargerStation[] = [
     totalEnergyKwh: 7420,
   },
   {
+    id: 'st-mum-03',
+    name: 'Shivaji Park Scoot & Bike 15A',
+    city: 'mumbai',
+    locality: 'Dadar West',
+    address: 'Ranade Rd, Near Shivaji Park, Dadar West, Mumbai 400028',
+    hostName: 'Sneha Joshi',
+    hostVerified: true,
+    hostSince: '2025',
+    hostRating: 4.8,
+    reviewCount: 34,
+    connectorType: '15A Socket',
+    powerKw: 3.3,
+    isFastDc: false,
+    pricePerKwh: 13.0,
+    status: 'available',
+    distanceKm: 2.6,
+    coordinates: { lat: 19.0276, lng: 72.8387 },
+    amenities: ['Two-Wheeler Friendly', 'Covered Porch', 'CCTV'],
+    imageUrl: drivewayImg,
+    instantBook: true,
+    totalSessions: 76,
+    totalEnergyKwh: 410,
+  },
+  {
     id: 'st-del-01',
     name: 'Hauz Khas Enclave Home Bay',
     city: 'delhi-ncr',
@@ -279,6 +324,30 @@ export const INITIAL_CHARGERS: ChargerStation[] = [
     totalEnergyKwh: 14900,
   },
   {
+    id: 'st-del-03',
+    name: 'Malviya Nagar 2W Veranda Point',
+    city: 'delhi-ncr',
+    locality: 'Malviya Nagar',
+    address: 'B-42, Shivalik Rd, Malviya Nagar, New Delhi 110017',
+    hostName: 'Rajeshwari Sharma',
+    hostVerified: true,
+    hostSince: '2025',
+    hostRating: 4.9,
+    reviewCount: 27,
+    connectorType: '15A Socket',
+    powerKw: 3.3,
+    isFastDc: false,
+    pricePerKwh: 11.5,
+    status: 'available',
+    distanceKm: 1.8,
+    coordinates: { lat: 28.5355, lng: 77.2116 },
+    amenities: ['Two-Wheeler Friendly', 'Rain Shelter', 'UPI Auto-Pay'],
+    imageUrl: drivewayImg,
+    instantBook: true,
+    totalSessions: 61,
+    totalEnergyKwh: 325,
+  },
+  {
     id: 'st-pun-01',
     name: 'Koregaon Lane 6 Solar Bay',
     city: 'pune',
@@ -302,6 +371,30 @@ export const INITIAL_CHARGERS: ChargerStation[] = [
     instantBook: true,
     totalSessions: 127,
     totalEnergyKwh: 3210,
+  },
+  {
+    id: 'st-pun-02',
+    name: 'FC Road Student Hub 15A Bay',
+    city: 'pune',
+    locality: 'Shivajinagar · FC Road',
+    address: 'Fergusson College Rd, Shivajinagar, Pune 411004',
+    hostName: 'Omkar Deshpande',
+    hostVerified: true,
+    hostSince: '2025',
+    hostRating: 4.8,
+    reviewCount: 31,
+    connectorType: '15A Socket',
+    powerKw: 3.3,
+    isFastDc: false,
+    pricePerKwh: 12.5,
+    status: 'available',
+    distanceKm: 2.2,
+    coordinates: { lat: 18.5236, lng: 73.8414 },
+    amenities: ['Two-Wheeler Friendly', 'Helmet Locker', 'CCTV'],
+    imageUrl: apartmentBayImg,
+    instantBook: true,
+    totalSessions: 69,
+    totalEnergyKwh: 380,
   },
 ];
 

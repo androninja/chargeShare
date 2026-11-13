@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Bike,
+  Car,
   ExternalLink,
   LocateFixed,
   MapPin,
@@ -18,14 +20,20 @@ import {
   useMap,
 } from '@vis.gl/react-google-maps';
 import { CITY_MAP_META } from '../data/seedData';
-import { ChargerStation, CityId } from '../types/marketplace';
+import { ChargerStation, CityId, VehicleCategoryFilter } from '../types/marketplace';
 
 interface GoogleCityMapProps {
   city: CityId;
   stations: ChargerStation[];
   selectedStationId: string | null;
+  vehicleFilter: VehicleCategoryFilter;
+  onVehicleFilterChange: (filter: VehicleCategoryFilter) => void;
   onSelectStation: (stationId: string) => void;
   onOpenBooking: (stationId: string) => void;
+}
+
+function formatPowerKw(kw: number): string {
+  return Number.isInteger(kw) ? String(kw) : kw.toFixed(1);
 }
 
 const MAP_ID = 'chargeshare-city-map';
@@ -110,6 +118,8 @@ function GoogleCityMapInner({
   city,
   stations,
   selectedStationId,
+  vehicleFilter,
+  onVehicleFilterChange,
   onSelectStation,
   onOpenBooking,
 }: GoogleCityMapProps) {
@@ -182,10 +192,55 @@ function GoogleCityMapInner({
 
   return (
     <div className="relative h-full min-h-[420px] w-full overflow-hidden rounded-2xl border border-[#E2E8F0] bg-[#EEF2F6]">
-      {/* Top-left City Corridor Header */}
-      <div className="pointer-events-none absolute top-3 left-3 z-10 rounded-xl border border-[#E2E8F0] bg-white/95 px-3.5 py-2 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] backdrop-blur-sm">
-        <div className="font-display text-xs font-semibold text-[#0F172A]">{meta.name} Grid</div>
-        <div className="text-[11px] text-[#475569]">{meta.corridorLabel}</div>
+      {/* Top-left City Corridor Header + Vehicle Type Toggle */}
+      <div className="absolute top-3 left-3 z-10 flex max-w-[calc(100%-64px)] flex-col items-start gap-2">
+        <div className="pointer-events-none rounded-xl border border-[#E2E8F0] bg-white/95 px-3.5 py-2 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+          <div className="font-display text-xs font-semibold text-[#0F172A]">{meta.name} Grid</div>
+          <div className="text-[11px] text-[#475569]">{meta.corridorLabel}</div>
+        </div>
+
+        <div
+          role="group"
+          aria-label="Filter chargers by vehicle type"
+          className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-[#E2E8F0] bg-white/95 p-1 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] backdrop-blur-sm"
+        >
+          <button
+            type="button"
+            onClick={() => onVehicleFilterChange('all')}
+            className={`inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+              vehicleFilter === 'all'
+                ? 'bg-[#059669] text-white'
+                : 'text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+            }`}
+          >
+            <Zap className="h-3 w-3" />
+            <span>All Chargers</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onVehicleFilterChange('2w')}
+            className={`inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+              vehicleFilter === '2w'
+                ? 'bg-[#059669] text-white'
+                : 'text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+            }`}
+          >
+            <Bike className="h-3 w-3" />
+            <span>2-Wheeler</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onVehicleFilterChange('4w')}
+            className={`inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+              vehicleFilter === '4w'
+                ? 'bg-[#059669] text-white'
+                : 'text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+            }`}
+          >
+            <Car className="h-3 w-3" />
+            <span>4-Wheeler</span>
+          </button>
+        </div>
       </div>
 
       {/* Top-right Map Zoom, Locate Me & Recenter Controls */}
@@ -230,7 +285,7 @@ function GoogleCityMapInner({
       </div>
 
       {geoMessage && (
-        <div className="absolute top-16 left-3 z-10 rounded-lg border border-[#E2E8F0] bg-white/95 px-2.5 py-1.5 text-[11px] font-medium text-[#475569] shadow-sm">
+        <div className="absolute top-28 left-3 z-10 rounded-lg border border-[#E2E8F0] bg-white/95 px-2.5 py-1.5 text-[11px] font-medium text-[#475569] shadow-sm">
           {geoMessage}
         </div>
       )}
@@ -318,7 +373,7 @@ function GoogleCityMapInner({
                   : CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY
               }
               onClick={() => onSelectStation(station.id)}
-              title={`${station.name} · ₹${station.pricePerKwh.toFixed(0)}/kWh`}
+              title={`${station.name} · ${formatPowerKw(station.powerKw)} kW ${station.isFastDc ? 'DC' : 'AC'} · ₹${station.pricePerKwh.toFixed(0)}/kWh`}
             >
               <div
                 onMouseEnter={() => setHoveredStationId(station.id)}
@@ -326,7 +381,7 @@ function GoogleCityMapInner({
                 className={`flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-xs font-bold shadow-[0_4px_12px_rgba(15,23,42,0.16)] transition-transform duration-150 tabular-nums whitespace-nowrap cursor-pointer ${pinTheme}`}
               >
                 <Zap className={`h-3 w-3 shrink-0 ${iconColor}`} />
-                <span>₹{station.pricePerKwh.toFixed(0)}</span>
+                <span>{formatPowerKw(station.powerKw)} kW</span>
               </div>
             </AdvancedMarker>
           );
@@ -334,7 +389,7 @@ function GoogleCityMapInner({
       </GoogleMap>
 
       {/* Bottom Selected Station Quick-Action Float Card */}
-      {selectedStation && (
+      {selectedStation ? (
         <div className="absolute right-3 bottom-3 left-3 z-20 flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-white/95 p-3 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.12)] backdrop-blur-sm">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#475569]">
@@ -347,7 +402,7 @@ function GoogleCityMapInner({
               {selectedStation.name}
             </div>
             <div className="text-xs text-[#475569] tabular-nums">
-              {selectedStation.connectorType} · {selectedStation.powerKw} kW{' '}
+              {selectedStation.connectorType} · {formatPowerKw(selectedStation.powerKw)} kW{' '}
               {selectedStation.isFastDc ? 'DC' : 'AC'} ·{' '}
               <span className="font-mono font-semibold text-[#0F172A]">
                 ₹{selectedStation.pricePerKwh.toFixed(2)}/kWh
@@ -380,6 +435,21 @@ function GoogleCityMapInner({
               {selectedStation.status === 'maintenance' ? 'Offline' : 'Inspect & Book'}
             </button>
           </div>
+        </div>
+      ) : (
+        <div className="absolute right-3 bottom-3 left-3 z-20 flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-white/95 p-3 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+          <div className="text-xs text-[#475569]">
+            No {vehicleFilter === '2w' ? '2-wheeler' : vehicleFilter === '4w' ? '4-wheeler' : ''} chargers match your current filters in {meta.name}.
+          </div>
+          {vehicleFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => onVehicleFilterChange('all')}
+              className="h-8 shrink-0 rounded-lg bg-[#059669] px-3 text-xs font-semibold text-white hover:bg-[#047857] cursor-pointer"
+            >
+              Show All
+            </button>
+          )}
         </div>
       )}
     </div>

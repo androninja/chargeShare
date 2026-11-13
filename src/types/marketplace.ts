@@ -6,6 +6,8 @@ export type ChargerStatus = 'available' | 'occupied' | 'high_demand' | 'maintena
 
 export type AppTab = 'discover' | 'live' | 'trips' | 'host' | 'profile';
 
+export type VehicleCategoryFilter = 'all' | '2w' | '4w';
+
 export interface UserProfile {
   uid: string;
   displayName: string;

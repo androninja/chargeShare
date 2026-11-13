@@ -227,7 +227,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [isAddChargerOpen, setAddChargerOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const seededRef = useRef(false);
+  const seededIdsRef = useRef<Record<string, boolean>>({});
   const lastTelemetrySyncAtRef = useRef(0);
   const activeSessionRef = useRef<LiveSession | null>(null);
   activeSessionRef.current = activeSession;
@@ -400,23 +400,33 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     return () => unsub();
   }, [handleDbError]);
 
-  // 3. Auto-seed initial Indian EV station catalog into Firestore once when empty and first verified user signs in
+  // 3. Auto-seed any missing initial Indian EV station catalog entries into Firestore when a verified user signs in
   useEffect(() => {
     if (!authReady || !user || !user.emailVerified || chargersLoading) return;
-    if (firestoreChargers === null || firestoreChargers.length > 0) return;
-    if (seededRef.current) return;
+    if (firestoreChargers === null) return;
 
-    seededRef.current = true;
+    const existingIds = new Set(firestoreChargers.map((c) => c.id));
+    const missingStations = INITIAL_CHARGERS.filter(
+      (st) => !existingIds.has(st.id) && !seededIdsRef.current[st.id],
+    );
+    if (missingStations.length === 0) return;
+
+    for (const st of missingStations) {
+      seededIdsRef.current[st.id] = true;
+    }
+
     const seedCatalog = async () => {
       const batch = writeBatch(db);
-      for (const st of INITIAL_CHARGERS) {
+      for (const st of missingStations) {
         const ref = doc(db, 'chargers', st.id);
         batch.set(ref, buildChargerPayload(st, user.uid));
       }
       try {
         await batch.commit();
       } catch (err) {
-        seededRef.current = false;
+        for (const st of missingStations) {
+          seededIdsRef.current[st.id] = false;
+        }
         handleDbError(err, OperationType.WRITE, 'chargers');
       }
     };
@@ -688,11 +698,27 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       });
       return cred.user;
     } catch (err) {
-      const code = (err as { code?: string })?.code;
-      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+      const code = (err as { code?: string; message?: string })?.code ?? '';
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        return null;
+      }
+      if (code === 'auth/unauthorized-domain') {
+        const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+        pushToast({
+          title: 'Domain Not Authorized for Sign-In',
+          description: `Add "${host}" in Firebase Console → Authentication → Settings → Authorized domains.`,
+          tone: 'amber',
+        });
+      } else if (code === 'auth/popup-blocked') {
+        pushToast({
+          title: 'Sign-In Popup Blocked',
+          description: 'Allow popups for this site in your browser address bar and try again.',
+          tone: 'amber',
+        });
+      } else {
         pushToast({
           title: 'Google Sign-In Failed',
-          description: 'Please allow popups for this site and try again.',
+          description: code ? `Auth error (${code}). Please try again.` : 'Please allow popups for this site and try again.',
           tone: 'amber',
         });
       }

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, List, Map as MapIcon, MapPin, Search, SlidersHorizontal, Zap } from 'lucide-react';
-import { CITY_MAP_META } from '../data/seedData';
+import { CITY_MAP_META, matchesVehicleCategory } from '../data/seedData';
 import { useMarketplace } from '../context/MarketplaceContext';
-import { CityId, ConnectorType } from '../types/marketplace';
+import { CityId, ConnectorType, VehicleCategoryFilter } from '../types/marketplace';
 import { ChargerCard } from './ChargerCard';
 import { GoogleCityMap } from './GoogleCityMap';
 
@@ -23,6 +23,7 @@ export function DiscoverView() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [connectorFilter, setConnectorFilter] = useState<'All' | ConnectorType>('All');
+  const [vehicleFilter, setVehicleFilter] = useState<VehicleCategoryFilter>('all');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [onlyFastDc, setOnlyFastDc] = useState(false);
   const [sortBy, setSortBy] = useState<'distance' | 'price' | 'power'>('distance');
@@ -32,6 +33,7 @@ export function DiscoverView() {
     const q = searchQuery.trim().toLowerCase();
     return chargers
       .filter((c) => c.city === city)
+      .filter((c) => matchesVehicleCategory(c, vehicleFilter))
       .filter((c) => (connectorFilter === 'All' ? true : c.connectorType === connectorFilter))
       .filter((c) => (onlyAvailable ? c.status === 'available' : true))
       .filter((c) => (onlyFastDc ? c.isFastDc : true))
@@ -47,7 +49,7 @@ export function DiscoverView() {
         if (sortBy === 'power') return b.powerKw - a.powerKw;
         return a.distanceKm - b.distanceKm;
       });
-  }, [chargers, city, connectorFilter, onlyAvailable, onlyFastDc, searchQuery, sortBy]);
+  }, [chargers, city, vehicleFilter, connectorFilter, onlyAvailable, onlyFastDc, searchQuery, sortBy]);
 
   return (
     <section className="mx-auto max-w-[1280px] px-4 py-5 md:px-8 md:py-6 pb-20 md:pb-8">
@@ -221,11 +223,12 @@ export function DiscoverView() {
               Showing <strong className="text-[#0F172A]">{cityStations.length}</strong> charging
               stations in {CITY_MAP_META[city].name}
             </span>
-            {(connectorFilter !== 'All' || onlyAvailable || onlyFastDc || searchQuery) && (
+            {(vehicleFilter !== 'all' || connectorFilter !== 'All' || onlyAvailable || onlyFastDc || searchQuery) && (
               <button
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
+                  setVehicleFilter('all');
                   setConnectorFilter('All');
                   setOnlyAvailable(false);
                   setOnlyFastDc(false);
@@ -246,12 +249,13 @@ export function DiscoverView() {
                 No chargers match those filters
               </h3>
               <p className="mt-1 text-sm text-[#475569]">
-                Try clearing the Fast DC or connector filter to see nearby verified host bays.
+                Try clearing the vehicle type, Fast DC, or connector filter to see nearby verified host bays.
               </p>
               <button
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
+                  setVehicleFilter('all');
                   setConnectorFilter('All');
                   setOnlyAvailable(false);
                   setOnlyFastDc(false);
@@ -287,6 +291,8 @@ export function DiscoverView() {
               city={city}
               stations={cityStations}
               selectedStationId={selectedStationId}
+              vehicleFilter={vehicleFilter}
+              onVehicleFilterChange={setVehicleFilter}
               onSelectStation={(id) => setSelectedStationId(id)}
               onOpenBooking={(id) => openBookingDrawer(id)}
             />
