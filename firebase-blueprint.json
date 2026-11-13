@@ -1,0 +1,573 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and city preference stored under private user scope.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID matching the parent document ID."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 160
+        },
+        "photoUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "homeLocality": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "evVehicle": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "vehicleRegNumber": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "upiId": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "gstin": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "preferredCity": {
+          "type": "string",
+          "enum": ["bengaluru", "mumbai", "delhi-ncr", "pune"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "preferredCity", "updatedAt"]
+    },
+    "ChargerStation": {
+      "title": "ChargerStation",
+      "description": "Community or fast DC EV charging station listed on chargeShare.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "city": {
+          "type": "string",
+          "enum": ["bengaluru", "mumbai", "delhi-ncr", "pune"]
+        },
+        "locality": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "address": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 260
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostVerified": {
+          "type": "boolean"
+        },
+        "hostSince": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 10
+        },
+        "hostRating": {
+          "type": "number"
+        },
+        "reviewCount": {
+          "type": "integer"
+        },
+        "connectorType": {
+          "type": "string",
+          "enum": ["CCS2", "Type 2", "15A Socket"]
+        },
+        "powerKw": {
+          "type": "number"
+        },
+        "isFastDc": {
+          "type": "boolean"
+        },
+        "pricePerKwh": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["available", "occupied", "high_demand", "maintenance"]
+        },
+        "distanceKm": {
+          "type": "number"
+        },
+        "coordinates": {
+          "type": "object",
+          "description": "Geographic lat/lng pair for Google Maps."
+        },
+        "amenities": {
+          "type": "array",
+          "description": "Up to 12 site amenities."
+        },
+        "imageUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "hostAvatarUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "instantBook": {
+          "type": "boolean"
+        },
+        "totalSessions": {
+          "type": "integer"
+        },
+        "totalEnergyKwh": {
+          "type": "number"
+        },
+        "isPublished": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "city",
+        "locality",
+        "address",
+        "hostName",
+        "hostUid",
+        "hostVerified",
+        "hostSince",
+        "hostRating",
+        "reviewCount",
+        "connectorType",
+        "powerKw",
+        "isFastDc",
+        "pricePerKwh",
+        "status",
+        "distanceKm",
+        "coordinates",
+        "amenities",
+        "imageUrl",
+        "instantBook",
+        "totalSessions",
+        "totalEnergyKwh",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Reservation created by a driver for a specific host charger station.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stationName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "locality": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "city": {
+          "type": "string",
+          "enum": ["bengaluru", "mumbai", "delhi-ncr", "pune"]
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "driverUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "driverName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "vehicleModel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "connectorType": {
+          "type": "string",
+          "enum": ["CCS2", "Type 2", "15A Socket"]
+        },
+        "powerKw": {
+          "type": "number"
+        },
+        "pricePerKwh": {
+          "type": "number"
+        },
+        "scheduledSlot": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "targetKwh": {
+          "type": "number"
+        },
+        "estimatedTotalInr": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending_approval", "confirmed", "in_session", "completed", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "stationId",
+        "stationName",
+        "locality",
+        "city",
+        "hostName",
+        "hostUid",
+        "driverUid",
+        "driverName",
+        "vehicleModel",
+        "connectorType",
+        "powerKw",
+        "pricePerKwh",
+        "scheduledSlot",
+        "targetKwh",
+        "estimatedTotalInr",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Receipt": {
+      "title": "Receipt",
+      "description": "Itemized GST tax receipt persisted after a completed charging session.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 40
+        },
+        "sessionDateIso": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 40
+        },
+        "stationName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "locality": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "vehicleModel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "connectorType": {
+          "type": "string",
+          "enum": ["CCS2", "Type 2", "15A Socket"]
+        },
+        "energyKwh": {
+          "type": "number"
+        },
+        "durationSeconds": {
+          "type": "integer"
+        },
+        "ratePerKwh": {
+          "type": "number"
+        },
+        "energyChargeInr": {
+          "type": "number"
+        },
+        "platformFeeInr": {
+          "type": "number"
+        },
+        "gstInr": {
+          "type": "number"
+        },
+        "totalPaidInr": {
+          "type": "number"
+        },
+        "co2SavedKg": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "invoiceNumber",
+        "sessionDateIso",
+        "stationName",
+        "hostName",
+        "locality",
+        "vehicleModel",
+        "connectorType",
+        "energyKwh",
+        "durationSeconds",
+        "ratePerKwh",
+        "energyChargeInr",
+        "platformFeeInr",
+        "gstInr",
+        "totalPaidInr",
+        "co2SavedKg",
+        "paymentMethod",
+        "createdAt"
+      ]
+    },
+    "LiveSession": {
+      "title": "LiveSession",
+      "description": "Active charging session telemetry state for the authenticated driver.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookingId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stationName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "locality": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "vehicleModel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "connectorType": {
+          "type": "string",
+          "enum": ["CCS2", "Type 2", "15A Socket"]
+        },
+        "maxPowerKw": {
+          "type": "number"
+        },
+        "pricePerKwh": {
+          "type": "number"
+        },
+        "startTimeIso": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 40
+        },
+        "elapsedSeconds": {
+          "type": "integer"
+        },
+        "startSoc": {
+          "type": "number"
+        },
+        "currentSoc": {
+          "type": "number"
+        },
+        "targetSoc": {
+          "type": "number"
+        },
+        "batteryCapacityKwh": {
+          "type": "number"
+        },
+        "livePowerKw": {
+          "type": "number"
+        },
+        "energyDeliveredKwh": {
+          "type": "number"
+        },
+        "runningCostInr": {
+          "type": "number"
+        },
+        "cableLocked": {
+          "type": "boolean"
+        },
+        "isPaused": {
+          "type": "boolean"
+        },
+        "powerHistory": {
+          "type": "array",
+          "description": "Up to 24 recent power delivery samples."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "bookingId",
+        "stationId",
+        "stationName",
+        "locality",
+        "hostName",
+        "vehicleModel",
+        "connectorType",
+        "maxPowerKw",
+        "pricePerKwh",
+        "startTimeIso",
+        "elapsedSeconds",
+        "startSoc",
+        "currentSoc",
+        "targetSoc",
+        "batteryCapacityKwh",
+        "livePowerKw",
+        "energyDeliveredKwh",
+        "runningCostInr",
+        "cableLocked",
+        "isPaused",
+        "powerHistory",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private authenticated user profile document (docId = profile)."
+    },
+    "/users/{userId}/receipts/{receiptId}": {
+      "schema": { "$ref": "#/entities/Receipt" },
+      "description": "Driver tax receipts scoped strictly to the owning user."
+    },
+    "/users/{userId}/activeSession/{docId}": {
+      "schema": { "$ref": "#/entities/LiveSession" },
+      "description": "Active EV charging telemetry session scoped to the owning user."
+    },
+    "/chargers/{chargerId}": {
+      "schema": { "$ref": "#/entities/ChargerStation" },
+      "description": "Published peer-to-peer EV charging stations visible across the network."
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Charging slot bookings shared between the booking driver and the station host."
+    }
+  }
+}

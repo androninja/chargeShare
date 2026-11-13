@@ -1,0 +1,10 @@
+{
+  "name": "VoltSetu",
+  "description": "Peer-to-peer EV charging marketplace connecting Indian drivers and community hosts with live map discovery, session telemetry, and host fleet operations.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

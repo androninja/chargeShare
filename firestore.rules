@@ -1,0 +1,443 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny all paths unless explicitly matched below
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core identity & schema primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'agrimjain27@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidCity(city) {
+      return city is string && city in ['bengaluru', 'mumbai', 'delhi-ncr', 'pune'];
+    }
+
+    function isValidConnector(conn) {
+      return conn is string && conn in ['CCS2', 'Type 2', '15A Socket'];
+    }
+
+    function isValidChargerStatus(status) {
+      return status is string && status in ['available', 'occupied', 'high_demand', 'maintenance'];
+    }
+
+    function isValidBookingStatus(status) {
+      return status is string && status in ['pending_approval', 'confirmed', 'in_session', 'completed', 'cancelled'];
+    }
+
+    function isValidCoordinates(coords) {
+      return coords is map
+        && coords.keys().hasAll(['lat', 'lng'])
+        && coords.keys().hasOnly(['lat', 'lng'])
+        && coords.lat is number && coords.lat >= -90 && coords.lat <= 90
+        && coords.lng is number && coords.lng >= -180 && coords.lng <= 180;
+    }
+
+    function isValidAmenities(listVal) {
+      return listVal is list
+        && listVal.size() <= 12
+        && (listVal.size() == 0 || (listVal[0] is string && listVal[0].size() >= 1 && listVal[0].size() <= 60));
+    }
+
+    function isValidPowerHistory(hist) {
+      return hist is list
+        && hist.size() <= 24
+        && (
+          hist.size() == 0 ||
+          (hist[0] is map
+            && hist[0].keys().hasAll(['minuteLabel', 'kw'])
+            && hist[0].keys().hasOnly(['minuteLabel', 'kw'])
+            && hist[0].minuteLabel is string && hist[0].minuteLabel.size() <= 16
+            && hist[0].kw is number && hist[0].kw >= 0 && hist[0].kw <= 500)
+        );
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'preferredCity', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'photoUrl', 'phone', 'homeLocality',
+          'evVehicle', 'vehicleRegNumber', 'upiId', 'gstin', 'preferredCity', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 20))
+        && (!('homeLocality' in data) || (data.homeLocality is string && data.homeLocality.size() <= 120))
+        && (!('evVehicle' in data) || (data.evVehicle is string && data.evVehicle.size() <= 100))
+        && (!('vehicleRegNumber' in data) || (data.vehicleRegNumber is string && data.vehicleRegNumber.size() <= 24))
+        && (!('upiId' in data) || (data.upiId is string && data.upiId.size() <= 80))
+        && (!('gstin' in data) || (data.gstin is string && data.gstin.size() <= 20))
+        && isValidCity(data.preferredCity)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCharger(data) {
+      return data.keys().hasAll([
+          'id', 'name', 'city', 'locality', 'address', 'hostName', 'hostUid',
+          'hostVerified', 'hostSince', 'hostRating', 'reviewCount', 'connectorType',
+          'powerKw', 'isFastDc', 'pricePerKwh', 'status', 'distanceKm', 'coordinates',
+          'amenities', 'imageUrl', 'instantBook', 'totalSessions', 'totalEnergyKwh',
+          'isPublished', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'name', 'city', 'locality', 'address', 'hostName', 'hostUid',
+          'hostVerified', 'hostSince', 'hostRating', 'reviewCount', 'connectorType',
+          'powerKw', 'isFastDc', 'pricePerKwh', 'status', 'distanceKm', 'coordinates',
+          'amenities', 'imageUrl', 'hostAvatarUrl', 'instantBook', 'totalSessions',
+          'totalEnergyKwh', 'isPublished', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 120
+        && isValidCity(data.city)
+        && data.locality is string && data.locality.size() >= 2 && data.locality.size() <= 120
+        && data.address is string && data.address.size() >= 2 && data.address.size() <= 260
+        && data.hostName is string && data.hostName.size() >= 2 && data.hostName.size() <= 100
+        && isValidId(data.hostUid)
+        && data.hostVerified is bool
+        && data.hostSince is string && data.hostSince.size() >= 4 && data.hostSince.size() <= 10
+        && data.hostRating is number && data.hostRating >= 0 && data.hostRating <= 5
+        && data.reviewCount is int && data.reviewCount >= 0 && data.reviewCount <= 1000000
+        && isValidConnector(data.connectorType)
+        && data.powerKw is number && data.powerKw >= 1 && data.powerKw <= 350
+        && data.isFastDc is bool
+        && data.pricePerKwh is number && data.pricePerKwh >= 5 && data.pricePerKwh <= 60
+        && isValidChargerStatus(data.status)
+        && data.distanceKm is number && data.distanceKm >= 0 && data.distanceKm <= 500
+        && isValidCoordinates(data.coordinates)
+        && isValidAmenities(data.amenities)
+        && data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 500
+        && (!('hostAvatarUrl' in data) || (data.hostAvatarUrl is string && data.hostAvatarUrl.size() <= 500))
+        && data.instantBook is bool
+        && data.totalSessions is int && data.totalSessions >= 0 && data.totalSessions <= 10000000
+        && data.totalEnergyKwh is number && data.totalEnergyKwh >= 0 && data.totalEnergyKwh <= 100000000
+        && data.isPublished is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll([
+          'id', 'stationId', 'stationName', 'locality', 'city', 'hostName',
+          'hostUid', 'driverUid', 'driverName', 'vehicleModel', 'connectorType',
+          'powerKw', 'pricePerKwh', 'scheduledSlot', 'targetKwh', 'estimatedTotalInr',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'stationId', 'stationName', 'locality', 'city', 'hostName',
+          'hostUid', 'driverUid', 'driverName', 'vehicleModel', 'connectorType',
+          'powerKw', 'pricePerKwh', 'scheduledSlot', 'targetKwh', 'estimatedTotalInr',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.stationId)
+        && data.stationName is string && data.stationName.size() >= 2 && data.stationName.size() <= 120
+        && data.locality is string && data.locality.size() >= 2 && data.locality.size() <= 120
+        && isValidCity(data.city)
+        && data.hostName is string && data.hostName.size() >= 2 && data.hostName.size() <= 100
+        && isValidId(data.hostUid)
+        && isValidId(data.driverUid)
+        && data.driverName is string && data.driverName.size() >= 1 && data.driverName.size() <= 100
+        && data.vehicleModel is string && data.vehicleModel.size() >= 2 && data.vehicleModel.size() <= 100
+        && isValidConnector(data.connectorType)
+        && data.powerKw is number && data.powerKw >= 1 && data.powerKw <= 350
+        && data.pricePerKwh is number && data.pricePerKwh >= 5 && data.pricePerKwh <= 60
+        && data.scheduledSlot is string && data.scheduledSlot.size() >= 2 && data.scheduledSlot.size() <= 60
+        && data.targetKwh is number && data.targetKwh >= 0.5 && data.targetKwh <= 200
+        && data.estimatedTotalInr is number && data.estimatedTotalInr >= 0 && data.estimatedTotalInr <= 50000
+        && isValidBookingStatus(data.status)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidReceipt(data, userId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'invoiceNumber', 'sessionDateIso', 'stationName',
+          'hostName', 'locality', 'vehicleModel', 'connectorType', 'energyKwh',
+          'durationSeconds', 'ratePerKwh', 'energyChargeInr', 'platformFeeInr',
+          'gstInr', 'totalPaidInr', 'co2SavedKg', 'paymentMethod', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'invoiceNumber', 'sessionDateIso', 'stationName',
+          'hostName', 'locality', 'vehicleModel', 'connectorType', 'energyKwh',
+          'durationSeconds', 'ratePerKwh', 'energyChargeInr', 'platformFeeInr',
+          'gstInr', 'totalPaidInr', 'co2SavedKg', 'paymentMethod', 'createdAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.userId)
+        && data.userId == userId
+        && data.invoiceNumber is string && data.invoiceNumber.size() >= 4 && data.invoiceNumber.size() <= 40
+        && data.sessionDateIso is string && data.sessionDateIso.size() >= 8 && data.sessionDateIso.size() <= 40
+        && data.stationName is string && data.stationName.size() >= 2 && data.stationName.size() <= 120
+        && data.hostName is string && data.hostName.size() >= 2 && data.hostName.size() <= 100
+        && data.locality is string && data.locality.size() >= 2 && data.locality.size() <= 120
+        && data.vehicleModel is string && data.vehicleModel.size() >= 2 && data.vehicleModel.size() <= 100
+        && isValidConnector(data.connectorType)
+        && data.energyKwh is number && data.energyKwh >= 0 && data.energyKwh <= 500
+        && data.durationSeconds is int && data.durationSeconds >= 0 && data.durationSeconds <= 864000
+        && data.ratePerKwh is number && data.ratePerKwh >= 1 && data.ratePerKwh <= 100
+        && data.energyChargeInr is number && data.energyChargeInr >= 0 && data.energyChargeInr <= 100000
+        && data.platformFeeInr is number && data.platformFeeInr >= 0 && data.platformFeeInr <= 5000
+        && data.gstInr is number && data.gstInr >= 0 && data.gstInr <= 5000
+        && data.totalPaidInr is number && data.totalPaidInr >= 0 && data.totalPaidInr <= 100000
+        && data.co2SavedKg is number && data.co2SavedKg >= 0 && data.co2SavedKg <= 5000
+        && data.paymentMethod is string && data.paymentMethod.size() >= 2 && data.paymentMethod.size() <= 60
+        && data.createdAt is timestamp;
+    }
+
+    function isValidLiveSession(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'bookingId', 'stationId', 'stationName', 'locality', 'hostName',
+          'vehicleModel', 'connectorType', 'maxPowerKw', 'pricePerKwh', 'startTimeIso',
+          'elapsedSeconds', 'startSoc', 'currentSoc', 'targetSoc', 'batteryCapacityKwh',
+          'livePowerKw', 'energyDeliveredKwh', 'runningCostInr', 'cableLocked',
+          'isPaused', 'powerHistory', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'bookingId', 'stationId', 'stationName', 'locality', 'hostName',
+          'vehicleModel', 'connectorType', 'maxPowerKw', 'pricePerKwh', 'startTimeIso',
+          'elapsedSeconds', 'startSoc', 'currentSoc', 'targetSoc', 'batteryCapacityKwh',
+          'livePowerKw', 'energyDeliveredKwh', 'runningCostInr', 'cableLocked',
+          'isPaused', 'powerHistory', 'updatedAt'
+        ])
+        && isValidId(data.userId)
+        && data.userId == userId
+        && isValidId(data.bookingId)
+        && isValidId(data.stationId)
+        && data.stationName is string && data.stationName.size() >= 2 && data.stationName.size() <= 120
+        && data.locality is string && data.locality.size() >= 2 && data.locality.size() <= 120
+        && data.hostName is string && data.hostName.size() >= 2 && data.hostName.size() <= 100
+        && data.vehicleModel is string && data.vehicleModel.size() >= 2 && data.vehicleModel.size() <= 100
+        && isValidConnector(data.connectorType)
+        && data.maxPowerKw is number && data.maxPowerKw >= 1 && data.maxPowerKw <= 350
+        && data.pricePerKwh is number && data.pricePerKwh >= 5 && data.pricePerKwh <= 60
+        && data.startTimeIso is string && data.startTimeIso.size() >= 8 && data.startTimeIso.size() <= 40
+        && data.elapsedSeconds is int && data.elapsedSeconds >= 0 && data.elapsedSeconds <= 864000
+        && data.startSoc is number && data.startSoc >= 0 && data.startSoc <= 100
+        && data.currentSoc is number && data.currentSoc >= 0 && data.currentSoc <= 100
+        && data.targetSoc is number && data.targetSoc >= 10 && data.targetSoc <= 100
+        && data.batteryCapacityKwh is number && data.batteryCapacityKwh >= 1 && data.batteryCapacityKwh <= 300
+        && data.livePowerKw is number && data.livePowerKw >= 0 && data.livePowerKw <= 350
+        && data.energyDeliveredKwh is number && data.energyDeliveredKwh >= 0 && data.energyDeliveredKwh <= 500
+        && data.runningCostInr is number && data.runningCostInr >= 0 && data.runningCostInr <= 100000
+        && data.cableLocked is bool
+        && data.isPaused is bool
+        && isValidPowerHistory(data.powerHistory)
+        && data.updatedAt is timestamp;
+    }
+
+    // Admin registry (read-only from client; managed via console/admin tools)
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if false;
+      allow write: if false;
+    }
+
+    // Public charger marketplace catalog
+    match /chargers/{chargerId} {
+      allow get: if isValidId(chargerId) && (
+        existing().isPublished == true ||
+        (isSignedIn() && existing().hostUid == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if resource.data.isPublished == true
+        || (isSignedIn() && resource.data.hostUid == request.auth.uid)
+        || isAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(chargerId)
+        && isValidCharger(incoming())
+        && incoming().id == chargerId
+        && incoming().hostUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(chargerId)
+        && isValidCharger(incoming())
+        && incoming().id == existing().id
+        && incoming().hostUid == existing().hostUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Host or Admin edits charger configuration, status, or pricing
+          ((existing().hostUid == request.auth.uid || isAdmin())
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'pricePerKwh', 'instantBook', 'name', 'locality',
+              'address', 'amenities', 'powerKw', 'connectorType', 'isFastDc',
+              'isPublished', 'updatedAt'
+            ])) ||
+          // Action: Driver locks bay for active session
+          (existing().isPublished == true
+            && existing().status in ['available', 'high_demand']
+            && incoming().status == 'occupied'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+          // Action: Driver completes session and updates bay telemetry counters
+          (existing().isPublished == true
+            && existing().status in ['occupied', 'available', 'high_demand']
+            && incoming().status == 'available'
+            && incoming().totalSessions >= existing().totalSessions
+            && incoming().totalSessions <= existing().totalSessions + 1
+            && incoming().totalEnergyKwh >= existing().totalEnergyKwh
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'totalSessions', 'totalEnergyKwh', 'updatedAt'
+            ]))
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(chargerId) && (
+        existing().hostUid == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Bookings shared strictly between booking driver and charger host
+    match /bookings/{bookingId} {
+      allow get: if isValidId(bookingId) && isSignedIn() && (
+        existing().driverUid == request.auth.uid ||
+        existing().hostUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.driverUid == request.auth.uid ||
+        resource.data.hostUid == request.auth.uid ||
+        isAdmin()
+      );
+
+      allow create: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().id == bookingId
+        && incoming().driverUid == request.auth.uid
+        && incoming().status in ['confirmed', 'pending_approval']
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/chargers/$(incoming().stationId))
+        && get(/databases/$(database)/documents/chargers/$(incoming().stationId)).data.hostUid == incoming().hostUid;
+
+      allow update: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().id == existing().id
+        && incoming().driverUid == existing().driverUid
+        && incoming().hostUid == existing().hostUid
+        && incoming().stationId == existing().stationId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && ((existing().status != 'completed' && existing().status != 'cancelled') || isAdmin())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && (
+          isAdmin() ||
+          // Action: Driver cancels own booking
+          (existing().driverUid == request.auth.uid && incoming().status == 'cancelled') ||
+          // Action: Host approves or declines pending request
+          (existing().hostUid == request.auth.uid
+            && existing().status == 'pending_approval'
+            && incoming().status in ['confirmed', 'cancelled']) ||
+          // Action: Driver starts or completes session
+          (existing().driverUid == request.auth.uid
+            && incoming().status in ['in_session', 'completed'])
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(bookingId) && (
+        existing().driverUid == request.auth.uid || isAdmin()
+      );
+    }
+
+    // User-scoped PII profile, receipts, and active charging telemetry
+    match /users/{userId} {
+      allow read, write: if false;
+
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && docId == 'profile' && (isOwner(userId) || isAdmin());
+        allow list: if false;
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(docId)
+          && docId == 'profile'
+          && isOwner(userId)
+          && isValidUserProfile(incoming(), userId)
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(docId)
+          && docId == 'profile'
+          && isOwner(userId)
+          && isValidUserProfile(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'email', 'photoUrl', 'phone', 'homeLocality',
+            'evVehicle', 'vehicleRegNumber', 'upiId', 'gstin', 'preferredCity', 'updatedAt'
+          ]);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /receipts/{receiptId} {
+        allow get: if isValidId(userId) && isValidId(receiptId) && (isOwner(userId) || isAdmin());
+        allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(receiptId)
+          && isOwner(userId)
+          && isValidReceipt(incoming(), userId)
+          && incoming().id == receiptId
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /activeSession/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && docId == 'current' && (isOwner(userId) || isAdmin());
+        allow list: if false;
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(docId)
+          && docId == 'current'
+          && isOwner(userId)
+          && isValidLiveSession(incoming(), userId)
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(docId)
+          && docId == 'current'
+          && isOwner(userId)
+          && isValidLiveSession(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().bookingId == existing().bookingId
+          && incoming().stationId == existing().stationId
+          && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+  }
+}
